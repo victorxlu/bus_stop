@@ -146,9 +146,11 @@
                 resultsDiv.innerHTML = '<div class="error">未找到到達信息。</div>'; // Message for no arrivals found
             }
         } catch (error) {
-            resultsDiv.innerHTML = `<div class="error">錯誤: ${error.message}</div>`;
-            console.error('獲取巴士數據時出錯:', error);
-        }
+        // Return a value before the error message
+        const errorMessage = `錯誤: ${error.message}`;
+        resultsDiv.innerHTML = `<div class="error">${errorMessage}</div>`;
+        console.error('獲取巴士數據時出錯:', errorMessage);
+    }
     }
     </script>
 </body>
