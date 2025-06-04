@@ -116,12 +116,16 @@
 
                     let etaFormatted;
                     try {
-                        // Try parsing the ETA date
-                        const etaDate = new Date(arrival.eta);
-                        if (isNaN(etaDate)) {
-                            throw new Error('Invalid date format for ETA');
+                        // Check if eta exists and is in the expected format
+                        if (arrival.eta) {
+                            const etaDate = new Date(arrival.eta);
+                            if (isNaN(etaDate.getTime())) { // Check if the date is valid
+                                throw new Error('Invalid date format for ETA');
+                            }
+                            etaFormatted = etaDate.toLocaleString('zh-HK', { timeZone: 'Asia/Hong_Kong' });
+                        } else {
+                            etaFormatted = '未知'; // Fallback if ETA is not available
                         }
-                        etaFormatted = etaDate.toLocaleString('zh-HK', { timeZone: 'Asia/Hong_Kong' });
                     } catch (error) {
                         console.error('Date parsing error:', error);
                         etaFormatted = '未知'; // Fallback if date parsing fails
