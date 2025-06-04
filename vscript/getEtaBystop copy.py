@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>巴士到站時間查詢</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 1rem;
+            display: flex; /* Use flexbox for layout */
+        }
+
+        .container {
+            display: flex;
+            flex-direction: row; /* Align items in a row */
+            width: 100%;
+        }
+
+        .button-container {
+            flex: 1; /* Allow button container to take full height */
+            max-width: 300px; /* Set max width for buttons */
+            margin-right: 2rem; /* Add margin to separate from results */
+            display: flex;
+            flex-direction: column; /* Stack buttons vertically */
+            gap: 1rem; /* Space between buttons */
+        }
+
+        button {
+            padding: 1rem;
+            font-size: 1.1rem;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #results {
+            flex: 2; /* Allow results container to take more space */
+            text-align: left; /* Align text to the left */
+        }
+
+        table {
+            width: 100%; /* Make table take full width */
+            border-collapse: collapse; /* Collapse borders */
+            margin-top: 1rem; /* Add some margin on top */
+        }
+
+        th, td {
+            border: 1px solid #ccc; /* Add border to cells */
+            padding: 8px; /* Add padding for better spacing */
+            text-align: left; /* Align text to the left */
+        }
+
+        th {
+            background-color: #007bff; /* Table header background */
+            color: white; /* Table header text color */
+        }
+
+        .error {
+            color: red; /* Error message styling */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="button-container">
+            <h1>巴士到站時間查詢</h1> <!-- Moved title inside the button container -->
+            <button onclick="getBusData('38C7D227DA221E77')">荃景圍街市</button>
+            <button onclick="getBusData('FE30EA565CC9ADBE')">荃景圍街巿</button>
+            <button onclick="getBusData('A11E4BB8DE5D8598')">楊屋道街市</button>
+            <button onclick="getBusData('D711AFA9658D51E9')">荃灣富華街</button>
+            <button onclick="getBusData('F8BC532C45A5A6F7')">仁濟醫院 (TW125)</button>
+            <button onclick="getBusData('7019D5AE9C63EE72')">荃灣眾安街 (TW134)</button>
+            <button onclick="getBusData('765D48B2BF317327')">荃灣西站巴士總站</button>
+        </div>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        async function getBusData(stopId) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '載入中...'; // Set loading message
+
+            try {
+                const response = await fetch(`/get_eta?stop_id=${stopId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP 錯誤！狀態碼: ${response.status}`);
+                }
+
+                const data = await response.json();
+                resultsDiv.innerHTML = ''; // Clear previous results
+
+                if (data.arrivals && Array.isArray(data.arrivals)) {
+                    // Create table to display the results
+                    let tableHtml = '<table><thead><tr><th>Route</th><th>ETA</th><th>Destination (EN)</th><th>Destination (TC)</th></tr></thead><tbody>';
+                    
+                    data.arrivals.forEach(arrival => {
+                        // Convert ETA to a readable format
+                        const etaDate = new Date(arrival.eta);
+                        const etaFormatted = etaDate.toLocaleString('zh-HK', { timeZone: 'Asia/Hong_Kong' });
+
+                        tableHtml += `<tr>
+                            <td>${arrival.route}</td>
+                            <td>${etaFormatted}</td>
+                            <td>${arrival.dest_en}</td>
+                            <td>${arrival.dest_tc}</td>
+                        </tr>`;
+                    });
+
+                    tableHtml += '</tbody></table>';
+                    resultsDiv.innerHTML = tableHtml; // Display the table
+                } else {
+                    resultsDiv.innerHTML = '<div class="error">未找到到達信息。</div>'; // Message for no arrivals found
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">錯誤: ${error.message}</div>`;
+                console.error('獲取巴士數據時出錯:', error);
+            }
+        }
+    </script>
+</body>
+</html>
