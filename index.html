@@ -104,53 +104,48 @@
             }
 
             const data = await response.json();
+            console.log('API Response:', data); // Log the entire response for debugging
+
             resultsDiv.innerHTML = ''; // Clear previous results
 
             // Check if the data contains 'arrivals' and it's an array
-            if (data.arrivals && data.arrivals.arrivals && Array.isArray(data.arrivals.arrivals) && data.arrivals.arrivals.length > 0) {
-                // Create table to display the results
-                let tableHtml = '<table><thead><tr><th>Route</th><th>Destination (EN)</th><th>Destination (TC)</th><th>Minutes to Arrive</th></tr></thead><tbody>';
-                
-                data.arrivals.arrivals.forEach(arrival => {
-                    console.log('Arrival data:', arrival); // Log arrival data for debugging
+            if (data.arrivals && data.arrivals.arrivals && Array.isArray(data.arrivals.arrivals)) {
+                if (data.arrivals.arrivals.length > 0) {
+                    let tableHtml = '<table><thead><tr><th>Route</th><th>Destination (EN)</th><th>Destination (TC)</th><th>Minutes to Arrive</th></tr></thead><tbody>';
+                    
+                    data.arrivals.arrivals.forEach(arrival => {
+                        console.log('Arrival data:', arrival); // Log arrival data for debugging
 
-                    let etaFormatted;
-                    try {
-                        // Check if eta exists and is in the expected format
-                        if (arrival.eta) {
-                            const etaDate = new Date(arrival.eta);
-                            if (isNaN(etaDate.getTime())) { // Check if the date is valid
-                                throw new Error('Invalid date format for ETA');
-                            }
+                        let etaFormatted;
+                        try {
+                            const etaDate = new Date(arrival.eta); // This should now work correctly
                             etaFormatted = etaDate.toLocaleString('zh-HK', { timeZone: 'Asia/Hong_Kong' });
-                        } else {
-                            etaFormatted = '未知'; // Fallback if ETA is not available
+                        } catch (error) {
+                            console.error('Date parsing error:', error);
+                            etaFormatted = '未知'; // Fallback if date parsing fails
                         }
-                    } catch (error) {
-                        console.error('Date parsing error:', error);
-                        etaFormatted = '未知'; // Fallback if date parsing fails
-                    }
 
-                    tableHtml += `<tr>
-                        <td>${arrival.route}</td>
-                        <td>${arrival.dest_en}</td>
-                        <td>${arrival.dest_tc}</td>
-                        <td>${arrival['Minutes Arrive'].toFixed(2)} 分鐘</td>
-                    </tr>`;
-                });
+                        tableHtml += `<tr>
+                            <td>${arrival.route}</td>
+                            <td>${arrival.dest_en || 'N/A'}</td>
+                            <td>${arrival.dest_tc || 'N/A'}</td>
+                            <td>${arrival['Minutes Arrive'] ? arrival['Minutes Arrive'].toFixed(2) : '未知'} 分鐘</td>
+                        </tr>`;
+                    });
 
-                tableHtml += '</tbody></table>';
-                resultsDiv.innerHTML = tableHtml; // Display the table
+                    tableHtml += '</tbody></table>';
+                    resultsDiv.innerHTML = tableHtml; // Display the table
+                } else {
+                    resultsDiv.innerHTML = '<div class="error">未找到到達信息。</div>'; // Message for no arrivals found
+                }
             } else {
-                // Display no arrival information found
-                resultsDiv.innerHTML = '<div class="error">未找到到達信息。</div>'; // Message for no arrivals found
+                resultsDiv.innerHTML = '<div class="error">API 返回的數據格式不正確。</div>'; // Message for incorrect data format
             }
         } catch (error) {
-        // Return a value before the error message
-        const errorMessage = `錯誤: ${error.message}`;
-        resultsDiv.innerHTML = `<div class="error">${errorMessage}</div>`;
-        console.error('獲取巴士數據時出錯:', errorMessage);
-    }
+            const errorMessage = `錯誤: ${error.message}`;
+            resultsDiv.innerHTML = `<div class="error">${errorMessage}</div>`;
+            console.error('獲取巴士數據時出錯:', errorMessage);
+        }
     }
     </script>
 </body>

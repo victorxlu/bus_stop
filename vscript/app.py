@@ -1,31 +1,32 @@
-from flask import Flask, request, jsonify, send_from_directory
-import os
+from flask import Flask, jsonify, request, render_template
 from getEtaBystop import getEtaBystop  # Ensure this import points to your function correctly
+import os
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder=os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))  # Set template folder to the parent directory
 
 @app.route('/')
 def index():
-    return send_from_directory(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')), 'index.html')
+    return render_template('index.html')  # Serve index.html from the parent directory
+
 
 @app.route('/get_eta', methods=['GET'])
 def get_eta():
-    stop_id = request.args.get('stop_id')  # Get stop_id from the query parameters
+    stop_id = request.args.get('stop_id')  # Get stop_id from query parameters
+
     if not stop_id:
-        return jsonify({'error': 'Stop ID is required'}), 400  # Return an error if stop_id is not provided
+        return jsonify({"error": "No stop ID provided."}), 400
 
     try:
-        arrivals = getEtaBystop(stop_id)  # Call the function to get ETA directly
-        
-        if not arrivals:
-            return jsonify({'error': 'No data found for the provided Stop ID.'}), 404
+        # Call the getEtaBystop function with the provided stop ID
+        arrivals_data = getEtaBystop(stop_id)
 
-        return jsonify({'arrivals': arrivals})
+        # Return the arrivals data wrapped in the expected structure
+        return jsonify({"arrivals": {"arrivals": arrivals_data}}), 200
 
     except Exception as e:
-        # Log the error message to the console for debugging
-        print(f"Error while fetching ETA for stop ID {stop_id}: {str(e)}")  # Detailed error logging
-        return jsonify({'error': 'An unexpected error occurred.', 'message': str(e)}), 500  # Return the error message
-
-if __name__ == "__main__":
-    app.run(debug=True)  # Start the Flask application
+        # Handle unexpected errors gracefully
+        return jsonify({"error": "An unexpected error occurred.", "message": str(e)}), 500
+    
+    
+if __name__ == '__main__':
+    app.run(debug=True)

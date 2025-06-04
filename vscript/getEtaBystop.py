@@ -1,49 +1,68 @@
-import pandas as pd
 from datetime import datetime
+import pandas as pd
 from pytz import timezone
 from GetResult import GetResult  # Ensure this import is correct
 
 def getEtaBystop(stopid):
-    try:
-        input = stopid
-        address = f'hbusetaproxy.victorxlu.workers.dev/v1/transport/kmb/stop-eta/{input}'
-        print(f"Fetching data from: {address}")  # Debug output
+    input = stopid
 
-        payload = GetResult(address)  # Fetch the inbound data
-        print(f"Received payload: {payload}")  # Debug output
+    # Construct the API address
+    address = f'https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/{input}'
+    
+    # Fetch the inbound data
+    payload = GetResult(address)  # Assuming GetResult fetches the data as a dictionary
 
-        if 'data' not in payload or not payload['data']:
-            print(f"No data found for stop ID: {stopid}")  # Log the stop ID
-            return {'arrivals': []}  # Return an empty array if no data is found
+    fmt = "%Y-%m-%d %H:%M:%S %Z%z"
+    
+    # Get current UTC time
+    utc_now = datetime.now(timezone('UTC'))
+    # Convert to Hong Kong timezone
+    ts_now = utc_now.astimezone(timezone("Asia/Hong_Kong"))
+    print(f"Current time in Hong Kong: {ts_now.strftime(fmt)}")  # Debug output
 
-        # Create a DataFrame from the payload data
-        sp_stop_bus_dataset = pd.DataFrame(payload['data'])
+    # Check if payload is valid and contains 'data'
+    if payload is None or 'data' not in payload:
+        print(f"No valid data found for stop ID: {stopid}")
+        return []  # Return an empty list if no data is found
 
-        # Ensure 'eta' is in datetime format
-        sp_stop_bus_dataset['eta'] = pd.to_datetime(sp_stop_bus_dataset['eta'])
-        
-        # Get current time in Hong Kong timezone
-        utc_now = datetime.now(timezone('UTC'))
-        ts_now = utc_now.astimezone(timezone("Asia/Hong_Kong"))
+    # Check if the 'data' field is empty
+    if not payload['data']:
+        print(f"No data available for stop ID: {stopid}")
+        return []  # Return an empty list
 
-        # Add current time to the DataFrame
-        sp_stop_bus_dataset["currenttime"] = ts_now
+    # Create a DataFrame from the payload data
+    sp_stop_bus_dataset = pd.DataFrame(payload['data'], columns=['route', 'eta', 'dest_en', 'dest_tc', 'seq', 'service_type'])
 
-        # Calculate the difference between ETA and current time
-        sp_stop_bus_dataset['diff'] = sp_stop_bus_dataset["eta"] - sp_stop_bus_dataset["currenttime"]
+    # Ensure 'eta' is in datetime format
+    sp_stop_bus_dataset["eta"] = pd.to_datetime(sp_stop_bus_dataset["eta"], errors='coerce')
+    sp_stop_bus_dataset["currenttime"] = ts_now
 
-        # Filter for future ETAs
-        sp_stop_bus_dataset = sp_stop_bus_dataset[(~sp_stop_bus_dataset['diff'].isna()) & (sp_stop_bus_dataset['diff'] > pd.Timedelta(0))]
+    # Calculate the difference between ETA and current time
+    sp_stop_bus_dataset['diff'] = sp_stop_bus_dataset["eta"] - sp_stop_bus_dataset["currenttime"]
 
-        # Calculate Minutes to Arrive (convert Timedelta to total seconds)
-        sp_stop_bus_dataset['Minutes Arrive'] = sp_stop_bus_dataset['diff'].dt.total_seconds() / 60
+    # Filter for future ETAs
+    sp_stop_bus_dataset = sp_stop_bus_dataset[(~sp_stop_bus_dataset['diff'].isna()) & (sp_stop_bus_dataset['diff'] > pd.Timedelta(0))]
 
-        # Convert DataFrame to a list of dictionaries for easier consumption
-        result = sp_stop_bus_dataset[['route', 'dest_en', 'dest_tc', 'Minutes Arrive']].to_dict(orient='records')
+    # If no future ETAs, return an empty list
+    if sp_stop_bus_dataset.empty:
+        print(f"No upcoming ETAs for stop ID: {stopid}")
+        return []  # Return an empty list
 
-        # Return the result as a JSON response without nesting
-        return {'arrivals': result}  # Ensure this is the correct format
+    # Calculate Minutes to Arrive (convert Timedelta to total seconds)
+    sp_stop_bus_dataset['Minutes Arrive'] = sp_stop_bus_dataset['diff'].dt.total_seconds() / 60
 
-    except Exception as e:
-        print(f"Error in getEtaBystop: {e}")
-        return {'error': 'An unexpected error occurred.'}  # Return a generic error message
+    # Convert DataFrame to a list of dictionaries
+    arrivals_data = sp_stop_bus_dataset.to_dict(orient='records')
+
+    # Format dates as strings for JSON serialization
+    for arrival in arrivals_data:
+        arrival['eta'] = arrival['eta'].strftime(fmt)  # Format ETA as string
+        arrival['currenttime'] = arrival['currenttime'].strftime(fmt)  # Format current time as string
+        arrival['Minutes Arrive'] = float(arrival['Minutes Arrive'])  # Ensure it's a float
+
+        # Ensure no Timedelta is returned; this is already done with the Minutes Arrive calculation
+        # Confirming that 'diff' is not returned to the client
+        if 'diff' in arrival:
+            del arrival['diff']  # Ensure diff is not included
+
+    return arrivals_data  # Return the list of dictionaries
