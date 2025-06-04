@@ -6,7 +6,7 @@ from GetResult import GetResult  # Ensure this import is correct
 def getEtaBystop(stopid):
     try:
         input = stopid
-        address = f'https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/{input}'
+        address = f'hbusetaproxy.victorxlu.workers.dev/v1/transport/kmb/stop-eta/{input}'
         print(f"Fetching data from: {address}")  # Debug output
 
         payload = GetResult(address)  # Fetch the inbound data
