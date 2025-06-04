@@ -18,8 +18,8 @@ def getEtaBystop(stopid, is_web=True):
     input = 'https%3A%2F%2Fdata.etabus.gov.hk%2Fv1%2Ftransport%2Fkmb%2Fstop-eta%2FFE30EA565CC9ADBE'
 
     # Construct the API address
-    address = f'https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/'+input
-    
+#    address = f'https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/'+input
+    address = f'https://busetaproxy.victorxlu.workers.dev/?url='+input
 
 #   address = build_url(address)
 #   address = build_url(address)
