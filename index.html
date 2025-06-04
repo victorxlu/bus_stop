@@ -86,51 +86,66 @@
     <div id="results" style="white-space: pre-wrap;"></div>
 
     <script>
-async function getBusData(stopId) {
-    const resultsDiv = document.getElementById('results');
-    resultsDiv.innerHTML = '載入中...'; // Set loading message
+    async function getBusData(stopId) {
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.innerHTML = '載入中...'; // Set loading message
 
-    try {
-        const response = await fetch(`/get_eta?stop_id=${stopId}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP 錯誤！狀態碼: ${response.status}`);
-        }
-
-        const data = await response.json();
-        resultsDiv.innerHTML = ''; // Clear previous results
-
-        // Check if the data contains 'arrivals' and it's an array
-        if (data.arrivals && data.arrivals.arrivals && Array.isArray(data.arrivals.arrivals) && data.arrivals.arrivals.length > 0) {
-            // Create table to display the results
-            let tableHtml = '<table><thead><tr><th>Route</th><th>Destination (EN)</th><th>Destination (TC)</th><th>Minutes to Arrive</th></tr></thead><tbody>';
-            
-            data.arrivals.arrivals.forEach(arrival => {
-                tableHtml += `<tr>
-                    <td>${arrival.route}</td>
-                    <td>${arrival.dest_en}</td>
-                    <td>${arrival.dest_tc}</td>
-                    <td>${arrival['Minutes Arrive'].toFixed(2)} 分鐘</td>
-                </tr>`;
+        try {
+            const response = await fetch(`/get_eta?stop_id=${stopId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             });
 
-            tableHtml += '</tbody></table>';
-            resultsDiv.innerHTML = tableHtml; // Display the table
-        } else {
-            // Display no arrival information found
-            resultsDiv.innerHTML = '<div class="error">未找到到達信息。</div>'; // Message for no arrivals found
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP 錯誤！狀態碼: ${response.status}`);
+            }
+
+            const data = await response.json();
+            resultsDiv.innerHTML = ''; // Clear previous results
+
+            // Check if the data contains 'arrivals' and it's an array
+            if (data.arrivals && data.arrivals.arrivals && Array.isArray(data.arrivals.arrivals) && data.arrivals.arrivals.length > 0) {
+                // Create table to display the results
+                let tableHtml = '<table><thead><tr><th>Route</th><th>Destination (EN)</th><th>Destination (TC)</th><th>Minutes to Arrive</th></tr></thead><tbody>';
+                
+                data.arrivals.arrivals.forEach(arrival => {
+                    console.log('Arrival data:', arrival); // Log arrival data for debugging
+
+                    let etaFormatted;
+                    try {
+                        // Try parsing the ETA date
+                        const etaDate = new Date(arrival.eta);
+                        if (isNaN(etaDate)) {
+                            throw new Error('Invalid date format for ETA');
+                        }
+                        etaFormatted = etaDate.toLocaleString('zh-HK', { timeZone: 'Asia/Hong_Kong' });
+                    } catch (error) {
+                        console.error('Date parsing error:', error);
+                        etaFormatted = '未知'; // Fallback if date parsing fails
+                    }
+
+                    tableHtml += `<tr>
+                        <td>${arrival.route}</td>
+                        <td>${arrival.dest_en}</td>
+                        <td>${arrival.dest_tc}</td>
+                        <td>${arrival['Minutes Arrive'].toFixed(2)} 分鐘</td>
+                    </tr>`;
+                });
+
+                tableHtml += '</tbody></table>';
+                resultsDiv.innerHTML = tableHtml; // Display the table
+            } else {
+                // Display no arrival information found
+                resultsDiv.innerHTML = '<div class="error">未找到到達信息。</div>'; // Message for no arrivals found
+            }
+        } catch (error) {
+            resultsDiv.innerHTML = `<div class="error">錯誤: ${error.message}</div>`;
+            console.error('獲取巴士數據時出錯:', error);
         }
-    } catch (error) {
-        resultsDiv.innerHTML = `<div class="error">錯誤: ${error.message}</div>`;
-        console.error('獲取巴士數據時出錯:', error);
     }
-}
     </script>
 </body>
 </html>
