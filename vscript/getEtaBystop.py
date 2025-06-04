@@ -2,12 +2,28 @@ from datetime import datetime
 import pandas as pd
 from pytz import timezone
 from GetResult import GetResult  # Ensure this import is correct
+from webConvert import build_url
 
-def getEtaBystop(stopid):
+#def getEtaBystop(stopid, is_web=True):
+
+def getEtaBystop(stopid, is_web=True):
+
     input = stopid
 
+    # Construct the API address using webConvert
+#    address = webConvert(f'/v1/transport/kmb/stop-eta/{input}', is_web)  # Use webConvert for URL construction
+#   'https://checksushiro.alvis-lam2019.workers.dev/?url=${Uri.encodeComponent(uri.toString())}';
+ 
+ 
+
+
     # Construct the API address
-    address = f'https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/{input}'
+    address = f'https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/'+input
+    
+    address = build_url(address)
+
+    # Fetch the inbound data
+    payload = GetResult(address)  # Assuming GetResult fetches the data as a dictionary
     
     # Fetch the inbound data
     payload = GetResult(address)  # Assuming GetResult fetches the data as a dictionary
