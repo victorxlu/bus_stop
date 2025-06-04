@@ -21,7 +21,7 @@ def getEtaBystop(stopid, is_web=True):
     address = f'https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/'+input
     
     address = build_url(address)
-
+    print(address)
     # Fetch the inbound data
     payload = GetResult(address)  # Assuming GetResult fetches the data as a dictionary
     

@@ -14,6 +14,7 @@ def build_url(url):
     if "localhost" in url or "127.0.0.1" in url:
         # Directly return the URL for localhost
         return url
+    #    return f'https://busetaproxy.victorxlu.workers.dev/?url={urllib.parse.quote(url)}'
     
     # Check if the URL is for a Netlify server
     if "netlify" in url:
@@ -21,4 +22,5 @@ def build_url(url):
         return f'https://busetaproxy.victorxlu.workers.dev/?url={urllib.parse.quote(url)}'
     
     # For other environments, return the original URL
-    return url
+    #return 
+    return f'https://busetaproxy.victorxlu.workers.dev/?url={urllib.parse.quote(url)}'
